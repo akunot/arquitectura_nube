@@ -1,0 +1,128 @@
+graph TB
+    subgraph Users
+        HR[HR Personnel]
+    end
+    
+    subgraph Edge["Edge Layer"]
+        R53[Route 53<br/>DNS]
+        CF[CloudFront<br/>CDN]
+        WAF[AWS WAF<br/>Web Firewall]
+    end
+    
+    subgraph Auth["Authentication"]
+        COG[Amazon Cognito<br/>User Pool]
+    end
+    
+    subgraph API["API Layer"]
+        APIGW[API Gateway<br/>REST API]
+    end
+    
+    subgraph VPC["VPC - Multi-AZ Deployment"]
+        subgraph Public["Public Subnets"]
+            ALB[Application Load Balancer]
+        end
+        
+        subgraph AppTier["Private Subnets - Application Tier"]
+            subgraph Upload["Resume Upload"]
+                L1[Lambda: Upload Handler]
+                L2[Lambda: Document Parser]
+                L3[Lambda: Text Extractor]
+            end
+            
+            subgraph Search["Search & Matching"]
+                L4[Lambda: Search Handler]
+                L5[Lambda: AI Matcher]
+            end
+            
+            subgraph CRUD["CRUD Operations"]
+                L6[Lambda: Resume CRUD]
+            end
+        end
+        
+        subgraph DataTier["Private Subnets - Data Tier"]
+            subgraph Storage["Object Storage"]
+                S3R[S3: Resume Storage<br/>Intelligent Tiering]
+                S3P[S3: Processed Data]
+            end
+            
+            subgraph DB["Databases"]
+                RDS[RDS PostgreSQL<br/>Multi-AZ<br/>Metadata & Profiles]
+                OS[OpenSearch<br/>Vector Search]
+                REDIS[ElastiCache Redis<br/>Query Cache]
+            end
+            
+            subgraph AI["AI/ML Services"]
+                BR[Amazon Bedrock<br/>Titan Embeddings]
+                COMP[Amazon Comprehend<br/>NLP Analysis]
+            end
+        end
+    end
+    
+    subgraph Async["Async Processing"]
+        SQS[SQS Queue<br/>Document Processing]
+        DLQ[Dead Letter Queue]
+    end
+    
+    subgraph Monitor["Monitoring & Security"]
+        CW[CloudWatch<br/>Logs & Metrics]
+        CT[CloudTrail<br/>Audit Logs]
+        SM[Secrets Manager<br/>Credentials]
+    end
+    
+    subgraph Backup["Backup & DR"]
+        S3B[S3 Glacier<br/>Backup Storage]
+    end
+    
+    HR --> R53
+    R53 --> CF
+    CF --> WAF
+    WAF --> APIGW
+    APIGW --> COG
+    APIGW --> ALB
+    
+    ALB --> L1
+    ALB --> L4
+    ALB --> L6
+    
+    L1 -->|Upload| S3R
+    S3R -->|Event| SQS
+    SQS --> L2
+    L2 --> L3
+    L3 --> S3P
+    L3 --> BR
+    BR -->|Embeddings| OS
+    L3 --> COMP
+    COMP --> RDS
+    
+    L4 --> REDIS
+    L4 --> OS
+    L4 --> L5
+    L5 --> BR
+    L5 --> RDS
+    
+    L6 --> RDS
+    L6 --> S3R
+    
+    SQS -.->|Failures| DLQ
+    
+    L1 --> CW
+    L2 --> CW
+    L3 --> CW
+    L4 --> CW
+    L5 --> CW
+    L6 --> CW
+    
+    APIGW --> CT
+    S3R --> CT
+    RDS --> CT
+    
+    RDS --> SM
+    OS --> SM
+    
+    S3R --> S3B
+    RDS --> S3B
+    
+    style VPC fill:#e8f4f8
+    style AppTier fill:#d4edda
+    style DataTier fill:#fff3cd
+    style AI fill:#f8d7da
