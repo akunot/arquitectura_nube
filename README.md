@@ -144,4 +144,3 @@ View `architecture-diagram.mmd` in any Mermaid-compatible viewer:
 - Advanced analytics dashboard with QuickSight
 - Multi-language support via Amazon Translate
 - Video resume analysis via Amazon Rekognition
-# arquitectura_nube
